@@ -1,26 +1,37 @@
 import 'package:flutter/material.dart';
 
 class AppColors {
-  static const peachLight = Color(0xFFFFE5D9);
-  static const peachMedium = Color(0xFFFFD1BC);
-  static const peachDark = Color(0xFFF4B266);
-  static const peachAccent = Color(0xFFFF9E7D);
   static const background = Colors.white;
-  static const textPrimary = Color(0xFF333333);
-  static const textSecondary = Color(0xFF757575);
-  static const grayLight = Color(0xFFF5F5F5);
-  static const grayMedium = Color(0xFFE0E0E0);
+  static const peachLight = Color(0xFFFFF5EB);
+  static const peachMedium = Color(0xFFFFDAB9);
+  static const peachDark = Color(0xFFE69138); 
+  static const peachCircle = Color(0xFFFFEBD6);
   
-  static const easyGreen = Color(0xFF81C784);
-  static const mediumOrange = Color(0xFFFFB74D);
-  static const hardRed = Color(0xFFE57373);
+  static const textPrimary = Colors.black;
+  static const textSecondary = Color(0xFF9E9E9E);
+  static const iconGray = Color(0xFFBDBDBD);
+  
+  static const easyGreen = Color(0xFF2E7D32);
+  static const mediumOrange = Color(0xFFE69138);
+  static const hardRed = Color(0xFFC62828);
+  
+  static const gridHighlight = Color(0xFFF0F0F0);
+  static const gridLines = Colors.black;
 }
 
 enum Difficulty {
-  easy(38),
-  medium(30),
-  hard(24);
+  easy(38, 'лёгкі', AppColors.easyGreen),
+  medium(30, 'сярэдні', AppColors.mediumOrange),
+  hard(24, 'складаны', AppColors.hardRed);
 
   final int clues;
-  const Difficulty(this.clues);
+  final String label;
+  final Color color;
+  const Difficulty(this.clues, this.label, this.color);
+}
+
+class AppStrings {
+  static const title = 'SUDOKU';
+  static const newGame = 'новая гульня';
+  static const exit = 'выхад';
 }

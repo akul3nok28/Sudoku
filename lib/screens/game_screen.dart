@@ -2,99 +2,81 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../core/constants.dart';
 import '../providers/game_provider.dart';
-import '../widgets/difficulty_dialog.dart';
 
 class GameScreen extends ConsumerWidget {
   const GameScreen({super.key});
-
-  String _formatTime(int seconds) {
-    final mins = (seconds ~/ 60).toString().padLeft(2, '0');
-    final secs = (seconds % 60).toString().padLeft(2, '0');
-    return '$mins:$secs';
-  }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final gameState = ref.watch(gameProvider);
     final size = MediaQuery.of(context).size;
-    final isPortrait = size.height > size.width;
-    final gridPadding = isPortrait ? 24.0 : 40.0;
-    final availableWidth = isPortrait ? size.width - gridPadding * 2 : size.height * 0.7;
+    final isLandscape = size.width > size.height;
 
     return Scaffold(
       backgroundColor: AppColors.background,
       body: SafeArea(
-        child: Column(
-          children: [
-            _buildHeader(context, gameState),
-            Expanded(
-              child: SingleChildScrollView(
-                child: Column(
-                  children: [
-                    const SizedBox(height: 20),
-                    _buildGrid(ref, gameState, availableWidth),
-                    const SizedBox(height: 30),
-                    _buildControls(ref, gameState),
-                    const SizedBox(height: 20),
-                    _buildNumpad(ref, gameState),
-                    const SizedBox(height: 40),
-                  ],
-                ),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 32.0, vertical: 24.0),
+          child: Column(
+            children: [
+              _buildHeader(),
+              const SizedBox(height: 40),
+              Expanded(
+                child: isLandscape 
+                  ? Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                      children: [
+                        _buildGrid(ref, gameState, size.height * 0.65),
+                        _buildRightPanel(ref, gameState),
+                      ],
+                    )
+                  : SingleChildScrollView(
+                      child: Column(
+                        children: [
+                          _buildGrid(ref, gameState, size.width * 0.85),
+                          const SizedBox(height: 40),
+                          _buildRightPanel(ref, gameState),
+                        ],
+                      ),
+                    ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
   }
 
-  Widget _buildHeader(BuildContext context, GameState state) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          IconButton(
-            onPressed: () => Navigator.pop(context),
-            icon: const Icon(Icons.close, color: AppColors.textSecondary),
+  Widget _buildHeader() {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        const Text(
+          AppStrings.title,
+          style: TextStyle(
+            fontSize: 48,
+            fontWeight: FontWeight.w200,
+            letterSpacing: 8,
+            color: AppColors.textPrimary,
           ),
-          Column(
-            children: [
-              Text(
-                state.difficulty.name.toUpperCase(),
-                style: const TextStyle(
-                  letterSpacing: 2,
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600,
-                  color: AppColors.peachAccent,
-                ),
-              ),
-              Text(
-                _formatTime(state.seconds),
-                style: const TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.w300,
-                  color: AppColors.textPrimary,
-                ),
-              ),
-            ],
-          ),
-          const Row(
-            children: [
-              Icon(Icons.settings_outlined, color: AppColors.textSecondary),
-            ],
-          ),
-        ],
-      ),
+        ),
+        Row(
+          children: [
+            Icon(Icons.format_paint_outlined, color: Colors.grey[400], size: 28),
+            const SizedBox(width: 20),
+            Icon(Icons.settings_outlined, color: Colors.grey[400], size: 28),
+          ],
+        ),
+      ],
     );
   }
 
-  Widget _buildGrid(WidgetRef ref, GameState state, double gridWidth) {
+  Widget _buildGrid(WidgetRef ref, GameState state, double size) {
     return Container(
-      width: gridWidth,
-      height: gridWidth,
+      width: size,
+      height: size,
       decoration: BoxDecoration(
-        border: Border.all(color: AppColors.textPrimary, width: 2),
+        border: Border.all(color: AppColors.gridLines, width: 1),
       ),
       child: Column(
         children: List.generate(9, (r) => Expanded(
@@ -111,8 +93,8 @@ class GameScreen extends ConsumerWidget {
   Widget _buildCell(WidgetRef ref, GameState state, int r, int c) {
     final cell = state.board[r][c];
     final isSelected = state.selectedRow == r && state.selectedCol == c;
-    
-    // Thicker lines for 3x3 blocks
+    final isRelated = (state.selectedRow == r || state.selectedCol == c);
+
     final borderRight = (c + 1) % 3 == 0 && c < 8 ? 2.0 : 0.5;
     final borderBottom = (r + 1) % 3 == 0 && r < 8 ? 2.0 : 0.5;
 
@@ -120,10 +102,12 @@ class GameScreen extends ConsumerWidget {
       onTap: () => ref.read(gameProvider.notifier).selectCell(r, c),
       child: Container(
         decoration: BoxDecoration(
-          color: isSelected ? AppColors.peachLight : Colors.transparent,
+          color: isSelected 
+              ? AppColors.peachMedium.withOpacity(0.5) 
+              : (isRelated ? AppColors.gridHighlight : Colors.transparent),
           border: Border(
-            right: BorderSide(color: AppColors.grayMedium, width: borderRight),
-            bottom: BorderSide(color: AppColors.grayMedium, width: borderBottom),
+            right: BorderSide(color: AppColors.gridLines, width: borderRight),
+            bottom: BorderSide(color: AppColors.gridLines, width: borderBottom),
           ),
         ),
         child: Center(
@@ -131,64 +115,66 @@ class GameScreen extends ConsumerWidget {
             ? Text(
                 '${cell.value}',
                 style: TextStyle(
-                  fontSize: 22,
-                  fontWeight: cell.isInitial ? FontWeight.w600 : FontWeight.w300,
-                  color: cell.isError ? AppColors.hardRed : AppColors.textPrimary,
+                  fontSize: 24,
+                  fontWeight: cell.isInitial ? FontWeight.w400 : FontWeight.w300,
+                  color: cell.isError ? Colors.red : AppColors.textPrimary,
                 ),
               )
-            : _buildNotes(cell.notes),
+            : const SizedBox.shrink(),
         ),
       ),
     );
   }
 
-  Widget _buildNotes(List<int> notes) {
-    if (notes.isEmpty) return const SizedBox.shrink();
-    return GridView.count(
-      crossAxisCount: 3,
-      padding: const EdgeInsets.all(2),
-      physics: const NeverScrollableScrollPhysics(),
-      children: List.generate(9, (index) {
-        final n = index + 1;
-        return Center(
-          child: Text(
-            notes.contains(n) ? '$n' : '',
-            style: const TextStyle(fontSize: 8, color: AppColors.textSecondary),
-          ),
-        );
-      }),
-    );
-  }
-
-  Widget _buildControls(WidgetRef ref, GameState state) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+  Widget _buildRightPanel(WidgetRef ref, GameState state) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
       children: [
-        _controlIcon(Icons.undo, 'undo', () {}),
-        _controlIcon(Icons.history, 'history', () {}),
-        _controlIcon(
-          state.isNoteMode ? Icons.edit : Icons.edit_outlined,
-          'notes',
-          () => ref.read(gameProvider.notifier).toggleNoteMode(),
-          isActive: state.isNoteMode,
-        ),
-        _controlIcon(Icons.lightbulb_outline, 'hint', () {}),
+        _buildNumpad(ref),
+        const SizedBox(height: 32),
+        _buildSmallMenuButton(AppStrings.newGame, onTap: () => Navigator.pop(ref.context)),
       ],
     );
   }
 
-  Widget _controlIcon(IconData icon, String label, VoidCallback onTap, {bool isActive = false}) {
+  Widget _buildNumpad(WidgetRef ref) {
+    return Container(
+      width: 200,
+      child: GridView.count(
+        shrinkWrap: true,
+        crossAxisCount: 3,
+        mainAxisSpacing: 12,
+        crossAxisSpacing: 12,
+        children: List.generate(9, (index) => _buildNumpadButton(ref, index + 1)),
+      ),
+    );
+  }
+
+  Widget _buildNumpadButton(WidgetRef ref, int num) {
     return GestureDetector(
-      onTap: onTap,
-      child: Column(
+      onTap: () => ref.read(gameProvider.notifier).inputNumber(num),
+      child: Stack(
+        alignment: Alignment.center,
         children: [
-          Icon(icon, color: isActive ? AppColors.peachAccent : AppColors.textSecondary),
-          const SizedBox(height: 4),
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: 10,
-              color: isActive ? AppColors.peachAccent : AppColors.textSecondary,
+          // Corner accents (red for numpad)
+          Container(
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: AppColors.hardRed.withOpacity(0.4), width: 1),
+            ),
+          ),
+          Container(
+            width: 44,
+            height: 44,
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(6),
+              border: Border.all(color: Colors.black12, width: 0.5),
+            ),
+            alignment: Alignment.center,
+            child: Text(
+              '$num',
+              style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w300),
             ),
           ),
         ],
@@ -196,34 +182,20 @@ class GameScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildNumpad(WidgetRef ref, GameState state) {
-    return Wrap(
-      spacing: 12,
-      runSpacing: 12,
-      alignment: WrapAlignment.center,
-      children: List.generate(9, (index) {
-        final num = index + 1;
-        return GestureDetector(
-          onTap: () => ref.read(gameProvider.notifier).inputNumber(num),
-          child: Container(
-            width: 50,
-            height: 50,
-            decoration: BoxDecoration(
-              color: AppColors.grayLight,
-              borderRadius: BorderRadius.circular(12),
-            ),
-            alignment: Alignment.center,
-            child: Text(
-              '$num',
-              style: const TextStyle(
-                fontSize: 24,
-                fontWeight: FontWeight.w300,
-                color: AppColors.peachAccent,
-              ),
-            ),
-          ),
-        );
-      }),
+  Widget _buildSmallMenuButton(String label, {required VoidCallback onTap}) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: Colors.black26, width: 1),
+        ),
+        child: Text(
+          label,
+          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w400),
+        ),
+      ),
     );
   }
 }

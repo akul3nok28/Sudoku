@@ -1,12 +1,16 @@
 import 'dart:async';
+import 'dart:convert';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../models/sudoku_cell.dart';
 import '../logic/sudoku_logic.dart';
 import '../core/constants.dart';
 
 class GameState {
   final List<List<SudokuCell>> board;
-  final List<List<SudokuCell>> history;
+  final List<List<int>> solution;
+  final List<List<List<SudokuCell>>> undoHistory;
+  final List<List<List<SudokuCell>>> redoHistory;
   final int? selectedRow;
   final int? selectedCol;
   final bool isNoteMode;
@@ -16,7 +20,9 @@ class GameState {
 
   GameState({
     required this.board,
-    this.history = const [],
+    required this.solution,
+    this.undoHistory = const [],
+    this.redoHistory = const [],
     this.selectedRow,
     this.selectedCol,
     this.isNoteMode = false,
@@ -27,18 +33,25 @@ class GameState {
 
   GameState copyWith({
     List<List<SudokuCell>>? board,
+    List<List<int>>? solution,
+    List<List<List<SudokuCell>>>? undoHistory,
+    List<List<List<SudokuCell>>>? redoHistory,
     int? selectedRow,
     int? selectedCol,
     bool? isNoteMode,
+    Difficulty? difficulty,
     int? seconds,
     bool? isGameOver,
   }) {
     return GameState(
       board: board ?? this.board,
+      solution: solution ?? this.solution,
+      undoHistory: undoHistory ?? this.undoHistory,
+      redoHistory: redoHistory ?? this.redoHistory,
       selectedRow: selectedRow ?? this.selectedRow,
       selectedCol: selectedCol ?? this.selectedCol,
       isNoteMode: isNoteMode ?? this.isNoteMode,
-      difficulty: this.difficulty,
+      difficulty: difficulty ?? this.difficulty,
       seconds: seconds ?? this.seconds,
       isGameOver: isGameOver ?? this.isGameOver,
     );
@@ -48,26 +61,44 @@ class GameState {
 class GameNotifier extends StateNotifier<GameState> {
   Timer? _timer;
   final SudokuLogic _logic = SudokuLogic();
+  SharedPreferences? _prefs;
 
-  GameNotifier() : super(GameState(board: [], difficulty: Difficulty.easy));
+  GameNotifier() : super(GameState(board: [], solution: [], difficulty: Difficulty.easy)) {
+    _initPrefs();
+  }
+
+  Future<void> _initPrefs() async {
+    try {
+      _prefs = await SharedPreferences.getInstance();
+      _loadGame();
+    } catch (_) {}
+  }
 
   void startNewGame(Difficulty difficulty) {
     final fullBoard = _logic.generateFullBoard();
     final puzzle = _logic.createPuzzle(fullBoard, difficulty.clues);
     
-    List<List<SudokuCell>> board = List.generate(9, (r) => List.generate(9, (c) => SudokuCell(
+    final board = List.generate(9, (r) => List.generate(9, (c) => SudokuCell(
       value: puzzle[r][c],
       isInitial: puzzle[r][c] != 0,
     )));
 
-    state = GameState(board: board, difficulty: difficulty);
+    state = GameState(
+      board: board,
+      solution: fullBoard,
+      difficulty: difficulty,
+      undoHistory: [],
+      redoHistory: [],
+    );
     _startTimer();
+    _saveGame();
   }
 
   void _startTimer() {
     _timer?.cancel();
     _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
       state = state.copyWith(seconds: state.seconds + 1);
+      if (state.seconds % 5 == 0) _saveGame();
     });
   }
 
@@ -81,15 +112,17 @@ class GameNotifier extends StateNotifier<GameState> {
 
   void inputNumber(int number) {
     if (state.selectedRow == null || state.selectedCol == null) return;
-    int r = state.selectedRow!;
-    int c = state.selectedCol!;
+    final r = state.selectedRow!;
+    final c = state.selectedCol!;
     
     if (state.board[r][c].isInitial) return;
 
-    List<List<SudokuCell>> newBoard = List.generate(9, (row) => List.from(state.board[row]));
+    _saveToHistory();
 
-    if (state.isNoteMode) {
-      List<int> notes = List.from(newBoard[r][c].notes);
+    final newBoard = state.board.map((row) => List<SudokuCell>.from(row)).toList();
+
+    if (state.isNoteMode && number != 0) {
+      final notes = List<int>.from(newBoard[r][c].notes);
       if (notes.contains(number)) {
         notes.remove(number);
       } else {
@@ -98,45 +131,131 @@ class GameNotifier extends StateNotifier<GameState> {
       }
       newBoard[r][c] = newBoard[r][c].copyWith(notes: notes, value: 0);
     } else {
-      bool isError = !_isValidMove(r, c, number);
-      newBoard[r][c] = newBoard[r][c].copyWith(value: number, notes: [], isError: isError);
-    }
-
-    state = state.copyWith(board: newBoard);
-    _checkWin();
-  }
-
-  bool _isValidMove(int row, int col, int num) {
-    for (int i = 0; i < 9; i++) {
-      if (i != col && state.board[row][i].value == num) return false;
-      if (i != row && state.board[i][col].value == num) return false;
-    }
-    int startRow = (row ~/ 3) * 3;
-    int startCol = (col ~/ 3) * 3;
-    for (int i = 0; i < 3; i++) {
-      for (int j = 0; j < 3; j++) {
-        int r = startRow + i;
-        int c = startCol + j;
-        if ((r != row || c != col) && state.board[r][c].value == num) return false;
+      if (number == 0) {
+        newBoard[r][c] = newBoard[r][c].copyWith(value: 0, notes: [], isError: false);
+      } else {
+        final isError = state.solution[r][c] != number;
+        newBoard[r][c] = newBoard[r][c].copyWith(value: number, notes: [], isError: isError);
       }
     }
-    return true;
+
+    state = state.copyWith(board: newBoard, redoHistory: []);
+    _checkWin();
+    _saveGame();
+  }
+
+  void _saveToHistory() {
+    final currentBoard = state.board.map((row) => List<SudokuCell>.from(row)).toList();
+    final newHistory = List<List<List<SudokuCell>>>.from(state.undoHistory)..add(currentBoard);
+    state = state.copyWith(undoHistory: newHistory);
+  }
+
+  void undo() {
+    if (state.undoHistory.isEmpty) return;
+    final lastBoard = state.undoHistory.last;
+    final newUndoHistory = List<List<List<SudokuCell>>>.from(state.undoHistory)..removeLast();
+    final newRedoHistory = List<List<List<SudokuCell>>>.from(state.redoHistory)..add(state.board);
+    
+    state = state.copyWith(
+      board: lastBoard,
+      undoHistory: newUndoHistory,
+      redoHistory: newRedoHistory,
+    );
+    _saveGame();
+  }
+
+  void redo() {
+    if (state.redoHistory.isEmpty) return;
+    final nextBoard = state.redoHistory.last;
+    final newRedoHistory = List<List<List<SudokuCell>>>.from(state.redoHistory)..removeLast();
+    final newUndoHistory = List<List<List<SudokuCell>>>.from(state.undoHistory)..add(state.board);
+
+    state = state.copyWith(
+      board: nextBoard,
+      undoHistory: newUndoHistory,
+      redoHistory: newUndoHistory,
+    );
+    _saveGame();
+  }
+
+  void giveHint() {
+    if (state.selectedRow == null || state.selectedCol == null) return;
+    final r = state.selectedRow!;
+    final c = state.selectedCol!;
+    
+    if (state.board[r][c].isInitial || (state.board[r][c].value == state.solution[r][c] && state.board[r][c].value != 0)) return;
+
+    _saveToHistory();
+    final newBoard = state.board.map((row) => List<SudokuCell>.from(row)).toList();
+    newBoard[r][c] = newBoard[r][c].copyWith(value: state.solution[r][c], notes: [], isError: false);
+    
+    state = state.copyWith(board: newBoard, redoHistory: []);
+    _checkWin();
+    _saveGame();
   }
 
   void _checkWin() {
+    if (state.board.isEmpty || state.solution.isEmpty) return;
     bool complete = true;
-    for (var row in state.board) {
-      for (var cell in row) {
-        if (cell.value == 0 || cell.isError) {
+    for (int r = 0; r < 9; r++) {
+      for (int c = 0; c < 9; c++) {
+        if (state.board[r][c].value != state.solution[r][c]) {
           complete = false;
           break;
         }
       }
+      if (!complete) break;
     }
     if (complete) {
       _timer?.cancel();
       state = state.copyWith(isGameOver: true);
     }
+  }
+
+  Future<void> _saveGame() async {
+    if (_prefs == null || state.board.isEmpty) return;
+    final boardData = state.board.map((r) => r.map((c) => {
+      'v': c.value,
+      'i': c.isInitial,
+      'e': c.isError,
+      'n': c.notes,
+    }).toList()).toList();
+    
+    await _prefs!.setString('board', jsonEncode(boardData));
+    await _prefs!.setString('solution', jsonEncode(state.solution));
+    await _prefs!.setInt('seconds', state.seconds);
+    await _prefs!.setString('difficulty', state.difficulty.name);
+  }
+
+  void _loadGame() {
+    final boardStr = _prefs?.getString('board');
+    if (boardStr == null) return;
+
+    try {
+      final List<dynamic> boardData = jsonDecode(boardStr);
+      final board = boardData.map((r) => (r as List).map((c) => SudokuCell(
+        value: c['v'],
+        isInitial: c['i'],
+        isError: c['e'],
+        notes: List<int>.from(c['n']),
+      )).toList()).toList();
+
+      final solutionStr = _prefs?.getString('solution');
+      final List<List<int>> solution = (jsonDecode(solutionStr!) as List)
+          .map((r) => List<int>.from(r)).toList();
+      
+      final diffStr = _prefs?.getString('difficulty');
+      final diff = Difficulty.values.firstWhere((e) => e.name == diffStr, orElse: () => Difficulty.easy);
+      final seconds = _prefs?.getInt('seconds') ?? 0;
+
+      state = GameState(
+        board: board,
+        solution: solution,
+        difficulty: diff,
+        seconds: seconds,
+      );
+      _startTimer();
+    } catch (_) {}
   }
 
   @override
