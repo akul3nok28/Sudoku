@@ -29,10 +29,11 @@ class MainMenu extends ConsumerWidget {
       transitionDuration: const Duration(milliseconds: 300),
       pageBuilder: (context, anim1, anim2) => const DifficultyDialog(),
       transitionBuilder: (context, anim1, anim2, child) {
+        final curved = CurvedAnimation(parent: anim1, curve: Curves.easeOutCubic);
         return FadeTransition(
-          opacity: anim1,
-          child: ScaleTransition(
-            scale: anim1.drive(Tween(begin: 0.9, end: 1.0).chain(CurveTween(curve: Curves.easeOutCubic))),
+          opacity: curved,
+          child: SlideTransition(
+            position: Tween<Offset>(begin: const Offset(0, 1), end: Offset.zero).animate(curved),
             child: child,
           ),
         );
@@ -77,7 +78,7 @@ class MainMenu extends ConsumerWidget {
                     /// === TITLE SECTION ===
                     const Positioned(
                       left: 378.73,
-                      top: 439.88, 
+                      top: 389.88, 
                       child: Text(
                         'sudoku',
                         style: TextStyle(
@@ -202,10 +203,10 @@ class MainMenu extends ConsumerWidget {
               ),
             ),
             // Corner Decorations
-            if (showCorners.contains(0)) Transform.translate(offset: const Offset(7, -5), child: _corner(width, height, 0)), // Top Left
-            if (showCorners.contains(1)) Transform.translate(offset: const Offset(5, -3), child: _corner(width, height, 1)), // Top Right
-            if (showCorners.contains(2)) _corner(width, height, 2), // Bottom Right
-            if (showCorners.contains(3)) _corner(width, height, 3), // Bottom Left
+            if (showCorners.contains(0)) Transform.translate(offset: const Offset(10, -5), child: _corner(width, height, 0)), // Top Left
+            if (showCorners.contains(1)) Transform.translate(offset: const Offset(-24, -18), child: _corner(width, height, 1)), // Top Right
+            if (showCorners.contains(2)) Transform.translate(offset: const Offset(-9, 4), child: _corner(width, height, 2)), // Bottom Right
+            if (showCorners.contains(3)) Transform.translate(offset: const Offset(19, 16), child: _corner(width, height, 3)), // Bottom Left
           ],
         ),
       ),

@@ -6,7 +6,8 @@ class DifficultyDialog extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Center(
+    return Align(
+      alignment: Alignment.bottomCenter,
       child: Material(
         color: Colors.transparent,
         child: Container(
@@ -14,7 +15,10 @@ class DifficultyDialog extends StatelessWidget {
           padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 24),
           decoration: BoxDecoration(
             color: Colors.white,
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: const BorderRadius.only(
+              topLeft: Radius.circular(12),
+              topRight: Radius.circular(12),
+            ),
             border: Border.all(color: Colors.black, width: 0.5),
             boxShadow: [
               BoxShadow(
