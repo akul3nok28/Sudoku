@@ -9,9 +9,12 @@ import 'package:flutter/services.dart';
 import 'package:flutter/foundation.dart';
 import 'dart:math' as math;
 
+/// Главный экран меню с запуском игры и выходом.
 class MainMenu extends ConsumerWidget {
+  /// Создаёт экран главного меню.
   const MainMenu({super.key});
 
+  /// Закрывает приложение на нативных платформах.
   void _closeApp() {
     if (kIsWeb) return;
     if (Platform.isAndroid || Platform.isIOS) {
@@ -21,7 +24,9 @@ class MainMenu extends ConsumerWidget {
     }
   }
 
+  /// Показывает диалог выбора сложности и запускает игру.
   void _showDifficultyDialog(BuildContext context, WidgetRef ref) async {
+    // Выбранная сложность возвращается из диалога.
     final Difficulty? difficulty = await showGeneralDialog<Difficulty>(
       context: context,
       barrierDismissible: true,
@@ -29,6 +34,7 @@ class MainMenu extends ConsumerWidget {
       transitionDuration: const Duration(milliseconds: 300),
       pageBuilder: (context, anim1, anim2) => const DifficultyDialog(),
       transitionBuilder: (context, anim1, anim2, child) {
+        // Анимация с плавным появлением и сдвигом вверх.
         final curved = CurvedAnimation(parent: anim1, curve: Curves.easeOutCubic);
         return FadeTransition(
           opacity: curved,
@@ -49,12 +55,14 @@ class MainMenu extends ConsumerWidget {
     }
   }
 
+  /// Строит основной интерфейс главного меню.
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     return Scaffold(
       backgroundColor: Colors.white,
       body: LayoutBuilder(
         builder: (context, constraints) {
+          // constraints — фактические размеры доступной области.
           return Center(
             child: FittedBox(
               fit: BoxFit.contain,
@@ -63,7 +71,7 @@ class MainMenu extends ConsumerWidget {
                 height: 1327,
                 child: Stack(
                   children: [
-                    /// === BACKGROUND CIRCLE ===
+                    /// === ДЕКОРАТИВНЫЙ КРУГ ФОНА ===
                     Positioned(
                       top: 138, 
                       left: 560, 
@@ -75,7 +83,7 @@ class MainMenu extends ConsumerWidget {
                       ),
                     ),
 
-                    /// === TITLE SECTION ===
+                    /// === ЗАГОЛОВОК ===
                     const Positioned(
                       left: 378.73,
                       top: 389.88, 
@@ -90,7 +98,7 @@ class MainMenu extends ConsumerWidget {
                       ),
                     ),
 
-                    /// === DIVIDER LINE ===
+                    /// === РАЗДЕЛИТЕЛЬНАЯ ЛИНИЯ ===
                     Positioned(
                       left: 391.09,
                       top: 731.37, 
@@ -101,7 +109,7 @@ class MainMenu extends ConsumerWidget {
                       ),
                     ),
 
-                    /// === DOTS ON LINE ===
+                    /// === ДЕКОРАТИВНЫЕ ТОЧКИ НА ЛИНИИ ===
                     Positioned(
                       left: 1485.10,
                       top: 714.92, 
@@ -113,7 +121,7 @@ class MainMenu extends ConsumerWidget {
                       child: _circle(const Color(0xFFFFD796)),
                     ),
 
-                    /// === NEW GAME BUTTON ===
+                    /// === КНОПКА НОВОЙ ИГРЫ ===
                     Positioned(
                       left: 440.35,
                       top: 799.48, 
@@ -123,11 +131,11 @@ class MainMenu extends ConsumerWidget {
                         154.53,
                         103.24,
                         onTap: () => _showDifficultyDialog(context, ref),
-                        showCorners: const [0, 1], // Only upper corners
+                        showCorners: const [0, 1], // Только верхние углы
                       ),
                     ),
 
-                    /// === EXIT BUTTON ===
+                    /// === КНОПКА ВЫХОДА ===
                     Positioned(
                       left: 503.75,
                       top: 972, 
@@ -137,11 +145,11 @@ class MainMenu extends ConsumerWidget {
                         135.60,
                         90.59,
                         onTap: _closeApp,
-                        showCorners: const [2, 3], // Only down corners
+                        showCorners: const [2, 3], // Только нижние углы
                       ),
                     ),
 
-                    /// === TOP ICONS SECTION ===
+                    /// === ИКОНКИ ВВЕРХУ ЭКРАНА ===
                     Positioned(
                       left: 1394.09,
                       top: 141, 
@@ -163,6 +171,7 @@ class MainMenu extends ConsumerWidget {
     );
   }
 
+  /// Рисует маленький цветной круг для декоративной линии.
   Widget _circle(Color color) {
     return Container(
       width: 28.79,
@@ -174,6 +183,13 @@ class MainMenu extends ConsumerWidget {
     );
   }
 
+  /// Строит кнопку меню с декоративными углами.
+  ///
+  /// [label] — текст кнопки.
+  /// [width]/[height] — размеры кнопки.
+  /// [fontSize] — размер шрифта текста.
+  /// [onTap] — обработчик нажатия.
+  /// [showCorners] — какие углы рисовать (0..3).
   Widget _buildMenuButton(String label, double width, double height, double fontSize, {required VoidCallback onTap, List<int> showCorners = const [0, 1, 2, 3]}) {
     return GestureDetector(
       onTap: onTap,
@@ -183,7 +199,7 @@ class MainMenu extends ConsumerWidget {
         child: Stack(
           alignment: Alignment.center,
           children: [
-            // Inner Background
+            // Внутренний фон кнопки.
             Container(
               width: width * 0.92,
               height: height * 0.85,
@@ -202,21 +218,25 @@ class MainMenu extends ConsumerWidget {
                 ),
               ),
             ),
-            // Corner Decorations
-            if (showCorners.contains(0)) Transform.translate(offset: const Offset(10, -5), child: _corner(width, height, 0)), // Top Left
-            if (showCorners.contains(1)) Transform.translate(offset: const Offset(-24, -18), child: _corner(width, height, 1)), // Top Right
-            if (showCorners.contains(2)) Transform.translate(offset: const Offset(-9, 4), child: _corner(width, height, 2)), // Bottom Right
-            if (showCorners.contains(3)) Transform.translate(offset: const Offset(19, 16), child: _corner(width, height, 3)), // Bottom Left
+            // Декоративные углы в зависимости от выбранных индексов.
+            if (showCorners.contains(0)) Transform.translate(offset: const Offset(10, -5), child: _corner(width, height, 0)), // Верхний левый
+            if (showCorners.contains(1)) Transform.translate(offset: const Offset(-24, -18), child: _corner(width, height, 1)), // Верхний правый
+            if (showCorners.contains(2)) Transform.translate(offset: const Offset(-9, 4), child: _corner(width, height, 2)), // Нижний правый
+            if (showCorners.contains(3)) Transform.translate(offset: const Offset(19, 16), child: _corner(width, height, 3)), // Нижний левый
           ],
         ),
       ),
     );
   }
 
+  /// Создаёт декоративный угол кнопки по индексу [index].
   Widget _corner(double btnWidth, double btnHeight, int index) {
+    // Угол поворота декоративного элемента.
     double angle = index * math.pi / 2;
+    // Размер изображения угла относительно высоты кнопки.
     double cornerSize = btnHeight * 0.8;
 
+    // Выравнивание угла в зависимости от индекса.
     Alignment alignment;
     switch (index) {
       case 0: alignment = Alignment.topLeft; break;

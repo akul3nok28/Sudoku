@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import '../core/constants.dart';
 
+/// Диалог выбора сложности при запуске новой игры.
 class DifficultyDialog extends StatelessWidget {
+  /// Создаёт диалог выбора сложности.
   const DifficultyDialog({super.key});
 
   @override
@@ -54,19 +56,22 @@ class DifficultyDialog extends StatelessWidget {
   }
 }
 
+/// Кнопка уровня сложности.
 class _DifficultyButton extends StatelessWidget {
+  /// Уровень сложности, который представляет кнопка.
   final Difficulty difficulty;
 
+  /// Создаёт кнопку сложности.
   const _DifficultyButton({required this.difficulty});
 
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: () => Navigator.pop(context, difficulty),
-      child: Stack(
-        alignment: Alignment.center,
-        children: [
-          // Decorative color corners
+        child: Stack(
+          alignment: Alignment.center,
+          children: [
+          // Внешняя рамка с цветом сложности.
           Container(
             width: 260,
             height: 48,
@@ -75,7 +80,7 @@ class _DifficultyButton extends StatelessWidget {
               border: Border.all(color: difficulty.color, width: 1.5),
             ),
           ),
-          // Inner Button
+          // Внутренняя панель с текстом.
           Container(
             width: 250,
             height: 38,
