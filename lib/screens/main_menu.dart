@@ -1,13 +1,15 @@
+import 'dart:io';
+import 'dart:math' as math;
+
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+
 import '../core/constants.dart';
 import '../providers/game_provider.dart';
 import '../widgets/difficulty_dialog.dart';
 import 'game_screen.dart';
-import 'dart:io';
-import 'package:flutter/services.dart';
-import 'package:flutter/foundation.dart';
-import 'dart:math' as math;
 
 /// Главный экран меню с запуском игры и выходом.
 class MainMenu extends ConsumerWidget {
@@ -73,12 +75,12 @@ class MainMenu extends ConsumerWidget {
                   children: [
                     /// === ДЕКОРАТИВНЫЙ КРУГ ФОНА ===
                     Positioned(
-                      top: 138, 
-                      left: 560, 
+                      top: 138,
+                      left: 560,
                       width: 769,
                       height: 565,
                       child: Image.asset(
-                        "assets/background_circle.png",
+                        'assets/background_circle.png',
                         fit: BoxFit.contain,
                       ),
                     ),
@@ -86,7 +88,7 @@ class MainMenu extends ConsumerWidget {
                     /// === ЗАГОЛОВОК ===
                     const Positioned(
                       left: 378.73,
-                      top: 389.88, 
+                      top: 389.88,
                       child: Text(
                         'sudoku',
                         style: TextStyle(
@@ -101,7 +103,7 @@ class MainMenu extends ConsumerWidget {
                     /// === РАЗДЕЛИТЕЛЬНАЯ ЛИНИЯ ===
                     Positioned(
                       left: 391.09,
-                      top: 731.37, 
+                      top: 731.37,
                       child: Container(
                         width: 1110.46,
                         height: 4.11,
@@ -112,19 +114,19 @@ class MainMenu extends ConsumerWidget {
                     /// === ДЕКОРАТИВНЫЕ ТОЧКИ НА ЛИНИИ ===
                     Positioned(
                       left: 1485.10,
-                      top: 714.92, 
+                      top: 714.92,
                       child: _circle(const Color(0xFFFFD093)),
                     ),
                     Positioned(
                       left: 376,
-                      top: 715.33, 
+                      top: 715.33,
                       child: _circle(const Color(0xFFFFD796)),
                     ),
 
                     /// === КНОПКА НОВОЙ ИГРЫ ===
                     Positioned(
                       left: 440.35,
-                      top: 799.48, 
+                      top: 799.48,
                       child: _buildMenuButton(
                         'новая гульня',
                         1009.23,
@@ -138,7 +140,7 @@ class MainMenu extends ConsumerWidget {
                     /// === КНОПКА ВЫХОДА ===
                     Positioned(
                       left: 503.75,
-                      top: 972, 
+                      top: 972,
                       child: _buildMenuButton(
                         'выхад',
                         885.02,
@@ -146,19 +148,6 @@ class MainMenu extends ConsumerWidget {
                         90.59,
                         onTap: _closeApp,
                         showCorners: const [2, 3], // Только нижние углы
-                      ),
-                    ),
-
-                    /// === ИКОНКИ ВВЕРХУ ЭКРАНА ===
-                    Positioned(
-                      left: 1394.09,
-                      top: 141, 
-                      child: Row(
-                        children: [
-                          Icon(Icons.format_paint_outlined, color: Colors.grey[300], size: 80),
-                          const SizedBox(width: 40),
-                          Icon(Icons.settings_outlined, color: Colors.grey[300], size: 80),
-                        ],
                       ),
                     ),
                   ],
@@ -190,7 +179,14 @@ class MainMenu extends ConsumerWidget {
   /// [fontSize] — размер шрифта текста.
   /// [onTap] — обработчик нажатия.
   /// [showCorners] — какие углы рисовать (0..3).
-  Widget _buildMenuButton(String label, double width, double height, double fontSize, {required VoidCallback onTap, List<int> showCorners = const [0, 1, 2, 3]}) {
+  Widget _buildMenuButton(
+    String label,
+    double width,
+    double height,
+    double fontSize, {
+    required VoidCallback onTap,
+    List<int> showCorners = const [0, 1, 2, 3],
+  }) {
     return GestureDetector(
       onTap: onTap,
       child: SizedBox(
@@ -251,7 +247,7 @@ class MainMenu extends ConsumerWidget {
       child: Transform.rotate(
         angle: angle,
         child: Image.asset(
-          "assets/button_corner.png",
+          'assets/button_corner.png',
           width: cornerSize,
           height: cornerSize,
           fit: BoxFit.contain,
